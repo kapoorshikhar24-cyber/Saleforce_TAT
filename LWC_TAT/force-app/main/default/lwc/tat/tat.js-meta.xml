@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>60.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Turn Around Time (SLA)</masterLabel>
+    <description>Displays a dynamic donut chart for SLA tracking.</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <property name="deadlineFieldApiName" type="String" label="SLA Deadline Field API Name" description="The API Name of the field that stores the SLA deadline (e.g. SLA_Deadline__c)" default="SLA_Deadline__c" />
+            <property name="startDateFieldApiName" type="String" label="Start Date Field API Name" description="The API Name of the field that stores the start date (e.g. CreatedDate)" default="CreatedDate" />
+            <property name="tier2DeadlineFieldApiName" type="String" label="Tier 2 Deadline Field" default="SLA_Tier_2_Deadline__c" />
+            <property name="tier3DeadlineFieldApiName" type="String" label="Tier 3 Deadline Field" default="SLA_Tier_3_Deadline__c" />
+            <property name="escalationTierFieldApiName" type="String" label="Escalation Tier Field" default="SLA_Escalation_Tier__c" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SLA_Notification_Sent__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Tracks whether the SLA Breach notification has been sent for this Lead.</description>
+    <externalId>false</externalId>
+    <label>SLA Notification Sent</label>
+    <trackFeedHistory>false</trackFeedHistory>
+    <type>Checkbox</type>
+</CustomField>

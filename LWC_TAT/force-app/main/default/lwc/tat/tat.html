@@ -1,0 +1,50 @@
+<template>
+    <lightning-card>
+        <div class="slds-grid slds-wrap container slds-grid_align-center slds-grid_vertical-align-center">
+            
+            <!-- LEFT: Donut Chart -->
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-text-align_center slds-m-bottom_medium">
+                <div class="chart-container">
+                    <svg viewBox="0 0 100 100" class="donut">
+                        <!-- Background circle -->
+                        <circle cx="50" cy="50" r="45" fill="transparent" stroke="#e0e0e0" stroke-width="8"></circle>
+                        <!-- Progress circle -->
+                        <circle cx="50" cy="50" r="45" fill="transparent" 
+                                stroke={circleColor} stroke-width="8" 
+                                stroke-dasharray={circleDasharray} 
+                                stroke-dashoffset={circleDashoffset} 
+                                stroke-linecap="round"
+                                transform="rotate(-90 50 50)"></circle>
+                    </svg>
+                    <div class="chart-text">
+                        <div class="percentage" style={textColorStyle}>{percentage}%</div>
+                        <div class="remaining-label">Remaining</div>
+                        <div class="hours">{timeLeftText}</div>
+                    </div>
+                </div>
+                <div class="slds-m-top_small" style="font-size: 1.2rem; font-weight: bold; color: #3b5066; width: 100%; text-align: center;">
+                    {countdownTimer}
+                </div>
+            </div>
+
+            <!-- RIGHT: Field Details -->
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 details-container">
+                <div class="detail-row">
+                    <span class="detail-label">{tierLabel}</span>
+                    <span class="detail-value">{formattedDueDate}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">SLA Status</span>
+                    <span class="detail-value">
+                        <span class={statusBadgeClass}>{slaStatusText}</span>
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Created Date</span>
+                    <span class="detail-value">{formattedCreatedDate}</span>
+                </div>
+            </div>
+
+        </div>
+    </lightning-card>
+</template>
