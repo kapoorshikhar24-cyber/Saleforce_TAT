@@ -1,0 +1,93 @@
+<template>
+    <lightning-card title="Lead Sourcing Scorecard" icon-name="custom:custom67" class="premium-card">
+        <div slot="actions">
+            <lightning-button-icon 
+                icon-name="utility:refresh" 
+                alternative-text="Recalculate Score" 
+                onclick={handleRefresh}
+                variant="border-filled">
+            </lightning-button-icon>
+        </div>
+
+        <template if:true={isLoading}>
+            <div class="spinner-container">
+                <lightning-spinner alternative-text="Evaluating Lead..." size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+            <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+                <!-- Score Summary & Progress Circle -->
+                <div class="score-summary-container slds-grid slds-grid_vertical-align-center slds-m-bottom_medium">
+                    <!-- Circular Progress Ring SVG -->
+                    <div class="gauge-container slds-m-right_medium">
+                        <svg class="progress-ring" width="120" height="120">
+                            <defs>
+                                <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color={gradientStartColor} />
+                                    <stop offset="100%" stop-color={gradientEndColor} />
+                                </linearGradient>
+                            </defs>
+                            <!-- Background Circle -->
+                            <circle class="progress-ring-bg" stroke="#e2e8f0" stroke-width="10" fill="transparent" r="45" cx="60" cy="60" />
+                            <!-- Foreground Progress Circle -->
+                            <circle 
+                                class="progress-ring-circle" 
+                                stroke="url(#scoreGradient)" 
+                                stroke-width="10" 
+                                fill="transparent" 
+                                r="45" 
+                                cx="60" 
+                                cy="60" 
+                                stroke-dasharray={circumference} 
+                                stroke-dashoffset={strokeDashoffset} 
+                                stroke-linecap="round"
+                                transform="rotate(-90 60 60)" />
+                        </svg>
+                        <div class="gauge-label-container">
+                            <span class="score-number">{totalScore}</span>
+                            <span class="score-max">Score</span>
+                        </div>
+                    </div>
+
+                    <!-- Description and Grade -->
+                    <div class="score-grade-info">
+                        <div class="slds-m-bottom_xs">
+                            <span class={badgeClass}>{leadGrade}</span>
+                        </div>
+                        <p class="grade-description">{gradeDescription}</p>
+                        <p class="rules-match-summary">Matched <strong>{matchCount}</strong> scoring rule(s)</p>
+                    </div>
+                </div>
+
+                <!-- Rules Matching breakdown -->
+                <div class="breakdown-container">
+                    <h3 class="breakdown-header">Scoring Breakdown</h3>
+                    <template if:true={hasMatches}>
+                        <div class="breakdown-list">
+                            <template for:each={matches} for:item="match">
+                                <div key={match.ruleId} class="breakdown-row slds-grid slds-grid_align-spread slds-grid_vertical-align-center fade-in">
+                                    <div class="breakdown-field-info">
+                                        <span class="field-label">{match.fieldLabel}</span>
+                                        <span class="field-comparison">
+                                            {match.operatorLabel} <strong>{match.configuredValue}</strong> (Actual: {match.actualValue})
+                                        </span>
+                                    </div>
+                                    <div class="breakdown-score">
+                                        <span class={match.scoreClass}>{match.formattedScore}</span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template if:false={hasMatches}>
+                        <div class="no-matches-state">
+                            <lightning-icon icon-name="utility:info_alt" size="small" alternative-text="No matches"></lightning-icon>
+                            <span class="slds-m-left_x-small">This Lead does not match any current scoring rules.</span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </lightning-card>
+</template>
