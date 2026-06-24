@@ -35,6 +35,16 @@
                 <default>false</default>
                 <label>Contains</label>
             </value>
+            <value>
+                <fullName>IsBlank</fullName>
+                <default>false</default>
+                <label>Is Blank</label>
+            </value>
+            <value>
+                <fullName>IsNotBlank</fullName>
+                <default>false</default>
+                <label>Is Not Blank</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

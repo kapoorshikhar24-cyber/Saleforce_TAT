@@ -47,49 +47,51 @@
 
                         <!-- Value Selection (changes based on field type) -->
                         <div class="slds-p-vertical_small">
-                            <template if:true={isPicklistField}>
-                                <lightning-combobox
-                                    name="value"
-                                    label="Target Value"
-                                    value={selectedValue}
-                                    placeholder="Select picklist value"
-                                    options={picklistValueOptions}
-                                    onchange={handleValueChange}
-                                    required>
-                                </lightning-combobox>
-                            </template>
-                            <template if:true={isBooleanField}>
-                                <lightning-combobox
-                                    name="value"
-                                    label="Target Value"
-                                    value={selectedValue}
-                                    placeholder="Select True/False"
-                                    options={booleanOptions}
-                                    onchange={handleValueChange}
-                                    required>
-                                </lightning-combobox>
-                            </template>
-                            <template if:true={isTextField}>
-                                <lightning-input
-                                    type="text"
-                                    name="value"
-                                    label="Target Value"
-                                    value={selectedValue}
-                                    placeholder="Enter criteria value"
-                                    onchange={handleValueChange}
-                                    required>
-                                </lightning-input>
-                            </template>
-                            <template if:true={isNumberField}>
-                                <lightning-input
-                                    type="number"
-                                    name="value"
-                                    label="Target Value"
-                                    value={selectedValue}
-                                    placeholder="Enter numeric value"
-                                    onchange={handleValueChange}
-                                    required>
-                                </lightning-input>
+                            <template if:true={showValueInput}>
+                                <template if:true={isPicklistField}>
+                                    <lightning-combobox
+                                        name="value"
+                                        label="Target Value"
+                                        value={selectedValue}
+                                        placeholder="Select picklist value"
+                                        options={picklistValueOptions}
+                                        onchange={handleValueChange}
+                                        required>
+                                    </lightning-combobox>
+                                </template>
+                                <template if:true={isBooleanField}>
+                                    <lightning-combobox
+                                        name="value"
+                                        label="Target Value"
+                                        value={selectedValue}
+                                        placeholder="Select True/False"
+                                        options={booleanOptions}
+                                        onchange={handleValueChange}
+                                        required>
+                                    </lightning-combobox>
+                                </template>
+                                <template if:true={isTextField}>
+                                    <lightning-input
+                                        type="text"
+                                        name="value"
+                                        label="Target Value"
+                                        value={selectedValue}
+                                        placeholder="Enter criteria value"
+                                        onchange={handleValueChange}
+                                        required>
+                                    </lightning-input>
+                                </template>
+                                <template if:true={isNumberField}>
+                                    <lightning-input
+                                        type="number"
+                                        name="value"
+                                        label="Target Value"
+                                        value={selectedValue}
+                                        placeholder="Enter numeric value"
+                                        onchange={handleValueChange}
+                                        required>
+                                    </lightning-input>
+                                </template>
                             </template>
                         </div>
 

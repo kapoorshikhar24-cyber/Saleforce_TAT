@@ -86,6 +86,13 @@ public with sharing class LeadScoringService {
             return false;
         }
 
+        if (op == 'IsBlank') {
+            return leadValObj == null || String.isBlank(String.valueOf(leadValObj));
+        }
+        if (op == 'IsNotBlank') {
+            return leadValObj != null && String.isNotBlank(String.valueOf(leadValObj));
+        }
+
         if (leadValObj == null) {
             if (op == 'Not_Equals' && String.isNotBlank(ruleVal)) {
                 return true;

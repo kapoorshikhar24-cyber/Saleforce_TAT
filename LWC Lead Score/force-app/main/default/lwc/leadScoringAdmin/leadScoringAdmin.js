@@ -26,7 +26,9 @@ export default class LeadScoringAdmin extends LightningElement {
         { label: 'Not Equals', value: 'Not_Equals' },
         { label: 'Greater Than', value: 'Greater_Than' },
         { label: 'Less Than', value: 'Less_Than' },
-        { label: 'Contains', value: 'Contains' }
+        { label: 'Contains', value: 'Contains' },
+        { label: 'Is Blank', value: 'IsBlank' },
+        { label: 'Is Not Blank', value: 'IsNotBlank' }
     ];
 
     booleanOptions = [
@@ -119,7 +121,13 @@ export default class LeadScoringAdmin extends LightningElement {
     }
 
     get isFormInvalid() {
-        return !this.selectedField || !this.selectedOperator || this.selectedValue === '' || this.selectedValue === undefined;
+        if (!this.selectedField || !this.selectedOperator) return true;
+        if (this.selectedOperator === 'IsBlank' || this.selectedOperator === 'IsNotBlank') return false;
+        return this.selectedValue === '' || this.selectedValue === undefined;
+    }
+
+    get showValueInput() {
+        return this.selectedOperator !== 'IsBlank' && this.selectedOperator !== 'IsNotBlank';
     }
 
     handleFieldChange(event) {

@@ -36,6 +36,8 @@ export default class LeadScoreCard extends LightningElement {
                     else if (m.operator === 'Greater_Than') opLabel = '>';
                     else if (m.operator === 'Less_Than') opLabel = '<';
                     else if (m.operator === 'Contains') opLabel = 'contains';
+                    else if (m.operator === 'IsBlank') opLabel = 'is blank';
+                    else if (m.operator === 'IsNotBlank') opLabel = 'is not blank';
 
                     return {
                         ...m,
