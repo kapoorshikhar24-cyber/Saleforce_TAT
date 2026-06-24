@@ -1,29 +1,33 @@
 <template>
-    <lightning-card title="Lead Sourcing Scoring Configurator" icon-name="custom:custom67" class="premium-card">
-        <!-- Dashboard Header Actions -->
+    <lightning-card title="Scoring Rules Administration" icon-name="standard:rules">
         <div slot="actions">
-            <lightning-button 
-                variant="brand-outline" 
-                label="Recalculate All Leads" 
-                icon-name="utility:refresh" 
-                onclick={handleRecalculateAll} 
-                loading={isRecalculating}
-                class="recalc-btn">
-            </lightning-button>
+            <lightning-button label="Recalculate All" title="Run batch recalculation for all records" icon-name="utility:sync" onclick={runBatchRecalculation}></lightning-button>
         </div>
-
         <div class="slds-p-around_medium">
-            <div class="slds-grid slds-gutters slds-wrap">
+            <div class="slds-grid slds-wrap slds-gutters">
                 <!-- Left Panel: Create Rule Form -->
                 <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-p-bottom_medium">
-                    <div class="form-container">
-                        <h2 class="form-title">Create Scoring Rule</h2>
-                        
+                    <h2 class="form-title slds-m-bottom_small">Add New Criteria</h2>
+                    <div class="slds-form slds-form_stacked">
+                        <!-- Object Selection -->
                         <div class="slds-p-vertical_small">
-                            <!-- Field Selection -->
                             <lightning-combobox
+                                name="object"
+                                label="Target Object"
+                                value={selectedObject}
+                                placeholder="Select an object"
+                                options={objectOptions}
+                                onchange={handleObjectChange}
+                                required>
+                            </lightning-combobox>
+                        </div>
+                        
+                        <!-- Field Selection -->
+                        <div class="slds-p-vertical_small">
+                            <lightning-combobox
+                                data-id="fieldSelect"
                                 name="field"
-                                label="Lead Field"
+                                label="Target Field"
                                 value={selectedField}
                                 placeholder="Select a field"
                                 options={fieldOptions}
@@ -49,15 +53,15 @@
                         <div class="slds-p-vertical_small">
                             <template if:true={showValueInput}>
                                 <template if:true={isPicklistField}>
-                                    <lightning-combobox
+                                    <lightning-input
+                                        type="text"
                                         name="value"
-                                        label="Target Value"
+                                        label="Target Value (Exact Picklist API Name)"
                                         value={selectedValue}
-                                        placeholder="Select picklist value"
-                                        options={picklistValueOptions}
+                                        placeholder="Enter picklist value"
                                         onchange={handleValueChange}
                                         required>
-                                    </lightning-combobox>
+                                    </lightning-input>
                                 </template>
                                 <template if:true={isBooleanField}>
                                     <lightning-combobox
@@ -101,7 +105,7 @@
                                 type="number"
                                 name="score"
                                 label="Score (Points to award)"
-                                value={selectedScore}
+                                value={scoreValue}
                                 placeholder="e.g. 15 or -10"
                                 onchange={handleScoreChange}
                                 required>
@@ -111,7 +115,7 @@
                                     label="Adjust Points" 
                                     min="-100" 
                                     max="100" 
-                                    value={selectedScore} 
+                                    value={scoreValue} 
                                     onchange={handleScoreChange}>
                                 </lightning-slider>
                             </div>
@@ -122,7 +126,7 @@
                                 variant="brand" 
                                 label="Add Rule" 
                                 icon-name="utility:add" 
-                                onclick={handleAddRule} 
+                                onclick={saveRule} 
                                 class="slds-stretch"
                                 disabled={isFormInvalid}>
                             </lightning-button>
@@ -134,11 +138,11 @@
                 <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
                     <div class="table-container">
                         <div class="slds-grid slds-grid_align-spread slds-p-bottom_small">
-                            <h2 class="table-title">Active Rules ({rulesCount})</h2>
+                            <h2 class="table-title">Active Rules for {selectedObject}</h2>
                             <lightning-button-icon 
                                 icon-name="utility:refresh" 
                                 alternative-text="Refresh Rules" 
-                                onclick={loadRules} 
+                                onclick={wiredRules} 
                                 variant="border-filled">
                             </lightning-button-icon>
                         </div>
@@ -150,51 +154,41 @@
                         </template>
 
                         <template if:false={isLoading}>
-                            <template if:true={hasRules}>
-                                <div class="rules-list">
-                                    <div class="rules-header grid-row">
-                                        <div class="col-field">Field Name</div>
-                                        <div class="col-operator">Operator</div>
-                                        <div class="col-value">Value</div>
-                                        <div class="col-score">Score Impact</div>
-                                        <div class="col-actions"></div>
-                                    </div>
-                                    <template for:each={rules} for:item="rule">
-                                        <div key={rule.Id} class="rule-row grid-row fade-in">
-                                            <div class="col-field">
-                                                <span class="field-badge">{rule.Field_Label__c}</span>
-                                                <div class="api-subtext">{rule.Field_Api_Name__c}</div>
-                                            </div>
-                                            <div class="col-operator">
-                                                <span class="operator-badge">{rule.Operator__c}</span>
-                                            </div>
-                                            <div class="col-value">
-                                                <span class="value-text" title={rule.Value__c}>{rule.Value__c}</span>
-                                            </div>
-                                            <div class="col-score">
-                                                <span class={rule.scoreClass}>{rule.Score__c} pts</span>
-                                            </div>
-                                            <div class="col-actions">
-                                                <lightning-button-icon 
-                                                    icon-name="utility:delete" 
-                                                    variant="error" 
-                                                    alternative-text="Delete Rule"
-                                                    data-id={rule.Id}
-                                                    onclick={handleDeleteRule}>
-                                                </lightning-button-icon>
-                                            </div>
+                            <div class="rules-list">
+                                <div class="rules-header grid-row">
+                                    <div class="col-field">Field Name</div>
+                                    <div class="col-operator">Operator</div>
+                                    <div class="col-value">Value</div>
+                                    <div class="col-score">Score Impact</div>
+                                    <div class="col-actions"></div>
+                                </div>
+                                <template for:each={rules} for:item="rule">
+                                    <div key={rule.Id} class="rule-row grid-row fade-in">
+                                        <div class="col-field">
+                                            <span class="field-badge">{rule.Field_Label__c}</span>
+                                            <div class="api-subtext">{rule.Field_Api_Name__c}</div>
                                         </div>
-                                    </template>
-                                </div>
-                            </template>
-                            
-                            <template if:false={hasRules}>
-                                <div class="empty-state">
-                                    <lightning-icon icon-name="utility:info" size="large" alternative-text="No rules"></lightning-icon>
-                                    <p class="slds-m-top_small">No scoring rules configured yet.</p>
-                                    <p class="empty-subtext">Use the form on the left to add your first rule.</p>
-                                </div>
-                            </template>
+                                        <div class="col-operator">
+                                            <span class="operator-badge">{rule.Operator__c}</span>
+                                        </div>
+                                        <div class="col-value">
+                                            <span class="value-text" title={rule.Value__c}>{rule.Value__c}</span>
+                                        </div>
+                                        <div class="col-score">
+                                            <span class="score-badge">{rule.Score__c} pts</span>
+                                        </div>
+                                        <div class="col-actions">
+                                            <lightning-button-icon 
+                                                icon-name="utility:delete" 
+                                                variant="error" 
+                                                alternative-text="Delete Rule"
+                                                data-id={rule.Id}
+                                                onclick={deleteRule}>
+                                            </lightning-button-icon>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
                         </template>
                     </div>
                 </div>

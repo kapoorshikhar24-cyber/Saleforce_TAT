@@ -53,13 +53,13 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
-    <label>Lead Scoring Rule</label>
+    <label>Scoring Rule</label>
     <nameField>
-        <displayFormat>LSR-{0000}</displayFormat>
+        <displayFormat>SR-{0000}</displayFormat>
         <label>Rule Number</label>
         <type>AutoNumber</type>
     </nameField>
-    <pluralLabel>Lead Scoring Rules</pluralLabel>
+    <pluralLabel>Scoring Rules</pluralLabel>
     <searchLayouts/>
     <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>

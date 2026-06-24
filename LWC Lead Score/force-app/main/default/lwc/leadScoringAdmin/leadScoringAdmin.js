@@ -1,25 +1,30 @@
 import { LightningElement, track, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import getLeadFields from '@salesforce/apex/LeadScoringController.getLeadFields';
-import getScoringRules from '@salesforce/apex/LeadScoringController.getScoringRules';
-import saveRule from '@salesforce/apex/LeadScoringController.saveRule';
-import deleteRule from '@salesforce/apex/LeadScoringController.deleteRule';
-import recalculateAllLeads from '@salesforce/apex/LeadScoringController.recalculateAllLeads';
+import { refreshApex } from '@salesforce/apex';
+import getFields from '@salesforce/apex/ScoringController.getFields';
+import getScoringRules from '@salesforce/apex/ScoringController.getScoringRules';
+import saveRule from '@salesforce/apex/ScoringController.saveRule';
+import deleteRule from '@salesforce/apex/ScoringController.deleteRule';
+import triggerBatchRecalculation from '@salesforce/apex/ScoringController.triggerBatchRecalculation';
 
 export default class LeadScoringAdmin extends LightningElement {
-    @track fields = [];
     @track rules = [];
-    @track isLoading = false;
-    @track isRecalculating = false;
+    @track fieldOptions = [];
+    
+    @track selectedObject = 'Lead';
+    objectOptions = [
+        { label: 'Lead', value: 'Lead' },
+        { label: 'Contact', value: 'Contact' },
+        { label: 'Account', value: 'Account' },
+        { label: 'Opportunity', value: 'Opportunity' }
+    ];
 
-    // Form inputs
     @track selectedField = '';
-    @track selectedOperator = 'Equals';
+    @track selectedOperator = '';
     @track selectedValue = '';
-    @track selectedScore = 0;
-
-    // Field descriptions mapped by API Name
-    fieldMap = {};
+    @track scoreValue = 0;
+    
+    fieldDataTypeMap = {};
 
     operatorOptions = [
         { label: 'Equals', value: 'Equals' },
@@ -36,88 +41,58 @@ export default class LeadScoringAdmin extends LightningElement {
         { label: 'False', value: 'false' }
     ];
 
-    @wire(getLeadFields)
+    isLoading = false;
+    wiredRulesResult;
+
+    @wire(getFields, { objectApiName: '$selectedObject' })
     wiredFields({ error, data }) {
         if (data) {
-            this.fields = data;
-            this.fieldMap = {};
-            data.forEach(f => {
-                this.fieldMap[f.apiName] = f;
+            this.fieldOptions = data.map(f => {
+                this.fieldDataTypeMap[f.value] = f.type;
+                return { label: f.label + ' (' + f.value + ')', value: f.value };
             });
         } else if (error) {
-            this.showToast('Error loading fields', error.body?.message || 'Unknown error', 'error');
+            this.showToast('Error loading fields', error.body.message, 'error');
         }
     }
 
-    connectedCallback() {
-        this.loadRules();
+    @wire(getScoringRules, { objectApiName: '$selectedObject' })
+    wiredRules(result) {
+        this.wiredRulesResult = result;
+        if (result.data) {
+            this.rules = result.data;
+        } else if (result.error) {
+            this.showToast('Error loading rules', result.error.body.message, 'error');
+        }
     }
 
-    loadRules() {
-        this.isLoading = true;
-        getScoringRules()
-            .then(result => {
-                this.rules = result.map(rule => {
-                    let scoreClass = 'score-positive';
-                    if (rule.Score__c < 0) {
-                        scoreClass = 'score-negative';
-                    } else if (rule.Score__c === 0) {
-                        scoreClass = 'score-neutral';
-                    }
-                    return {
-                        ...rule,
-                        scoreClass: scoreClass
-                    };
-                });
-                this.isLoading = false;
-            })
-            .catch(error => {
-                this.isLoading = false;
-                this.showToast('Error loading rules', error.body?.message || 'Unknown error', 'error');
-            });
+    handleObjectChange(event) {
+        this.selectedObject = event.detail.value;
+        this.clearForm();
     }
 
-    get fieldOptions() {
-        return this.fields.map(f => ({
-            label: `${f.label} (${f.apiName})`,
-            value: f.apiName
-        }));
-    }
-
-    get currentField() {
-        return this.fieldMap[this.selectedField];
+    get selectedFieldType() {
+        return this.fieldDataTypeMap[this.selectedField];
     }
 
     get isPicklistField() {
-        return this.currentField?.type === 'PICKLIST';
+        return this.selectedFieldType === 'PICKLIST' || this.selectedFieldType === 'MULTIPICKLIST';
     }
 
     get isBooleanField() {
-        return this.currentField?.type === 'BOOLEAN';
+        return this.selectedFieldType === 'BOOLEAN';
     }
 
     get isNumberField() {
-        const type = this.currentField?.type;
-        return type === 'INTEGER' || type === 'DOUBLE' || type === 'CURRENCY' || type === 'PERCENT';
+        return this.selectedFieldType === 'DOUBLE' || this.selectedFieldType === 'INTEGER' || this.selectedFieldType === 'CURRENCY' || this.selectedFieldType === 'PERCENT';
     }
 
     get isTextField() {
-        return !this.isPicklistField && !this.isBooleanField && !this.isNumberField && this.selectedField !== '';
+        return !this.isPicklistField && !this.isBooleanField && !this.isNumberField;
     }
 
-    get picklistValueOptions() {
-        if (this.isPicklistField && this.currentField.picklistValues) {
-            return this.currentField.picklistValues.map(v => ({ label: v, value: v }));
-        }
-        return [];
-    }
-
-    get rulesCount() {
-        return this.rules.length;
-    }
-
-    get hasRules() {
-        return this.rules.length > 0;
+    get showValueInput() {
+        return this.selectedOperator !== 'IsBlank' && this.selectedOperator !== 'IsNotBlank';
     }
 
     get isFormInvalid() {
@@ -126,85 +101,102 @@ export default class LeadScoringAdmin extends LightningElement {
         return this.selectedValue === '' || this.selectedValue === undefined;
     }
 
-    get showValueInput() {
-        return this.selectedOperator !== 'IsBlank' && this.selectedOperator !== 'IsNotBlank';
-    }
-
     handleFieldChange(event) {
-        this.selectedField = event.target.value;
+        this.selectedField = event.detail.value;
         this.selectedValue = ''; // reset value on field change
+        
+        let selectFieldEl = this.template.querySelector('[data-id="fieldSelect"]');
+        let selectedLabel = selectFieldEl.options.find(opt => opt.value === this.selectedField).label;
+        this.selectedFieldLabel = selectedLabel.split(' (')[0]; 
     }
 
     handleOperatorChange(event) {
-        this.selectedOperator = event.target.value;
+        this.selectedOperator = event.detail.value;
     }
 
     handleValueChange(event) {
-        this.selectedValue = event.target.value;
+        this.selectedValue = event.detail.value;
     }
 
     handleScoreChange(event) {
-        this.selectedScore = parseInt(event.target.value, 10) || 0;
+        this.scoreValue = event.detail.value;
     }
 
-    handleAddRule() {
+    saveRule() {
         if (this.isFormInvalid) {
-            this.showToast('Missing Fields', 'Please fill in all required inputs.', 'warning');
+            this.showToast('Validation Error', 'Please fill all required criteria fields.', 'warning');
             return;
         }
 
-        const fieldDesc = this.currentField;
-        const ruleRecord = {
+        this.isLoading = true;
+        const newRule = {
             sobjectType: 'Lead_Scoring_Rule__c',
+            Object_Api_Name__c: this.selectedObject,
             Field_Api_Name__c: this.selectedField,
-            Field_Label__c: fieldDesc.label,
+            Field_Label__c: this.selectedFieldLabel,
             Operator__c: this.selectedOperator,
             Value__c: String(this.selectedValue),
-            Score__c: this.selectedScore
+            Score__c: this.scoreValue
         };
 
-        this.isLoading = true;
-        saveRule({ rule: ruleRecord })
+        saveRule({ rule: newRule })
             .then(() => {
-                this.showToast('Success', 'Rule created successfully.', 'success');
-                this.selectedValue = '';
-                this.selectedScore = 0;
-                this.loadRules();
+                this.showToast('Success', 'Scoring rule saved successfully.', 'success');
+                this.clearForm();
+                return refreshApex(this.wiredRulesResult);
             })
             .catch(error => {
+                this.showToast('Error saving rule', error.body.message, 'error');
+            })
+            .finally(() => {
                 this.isLoading = false;
-                this.showToast('Error saving rule', error.body?.message || 'Unknown error', 'error');
             });
     }
 
-    handleDeleteRule(event) {
+    deleteRule(event) {
         const ruleId = event.target.dataset.id;
         this.isLoading = true;
-        deleteRule({ ruleId })
+        deleteRule({ ruleId: ruleId })
             .then(() => {
-                this.showToast('Success', 'Rule deleted.', 'success');
-                this.loadRules();
+                this.showToast('Success', 'Rule deleted successfully.', 'success');
+                return refreshApex(this.wiredRulesResult);
             })
             .catch(error => {
+                this.showToast('Error deleting rule', error.body.message, 'error');
+            })
+            .finally(() => {
                 this.isLoading = false;
-                this.showToast('Error deleting rule', error.body?.message || 'Unknown error', 'error');
             });
     }
 
-    handleRecalculateAll() {
-        this.isRecalculating = true;
-        recalculateAllLeads()
-            .then(message => {
-                this.showToast('Recalculation Started', message, 'info');
-                this.isRecalculating = false;
+    runBatchRecalculation() {
+        this.isLoading = true;
+        triggerBatchRecalculation({ objectApiName: this.selectedObject })
+            .then(() => {
+                this.showToast('Batch Started', 'Recalculating scores for all ' + this.selectedObject + ' records in the background.', 'success');
             })
             .catch(error => {
-                this.isRecalculating = false;
-                this.showToast('Error starting recalculation', error.body?.message || 'Unknown error', 'error');
+                this.showToast('Error starting batch', error.body.message, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
             });
+    }
+
+    clearForm() {
+        this.selectedField = '';
+        this.selectedOperator = '';
+        this.selectedValue = '';
+        this.scoreValue = 0;
     }
 
     showToast(title, message, variant) {
-        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: title,
+                message: message,
+                variant: variant
+            })
+        );
     }
 }

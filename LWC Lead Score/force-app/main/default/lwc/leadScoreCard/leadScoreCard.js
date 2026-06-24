@@ -1,110 +1,89 @@
-import { LightningElement, api, track } from 'lwc';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import getLeadScoreDetails from '@salesforce/apex/LeadScoringController.getLeadScoreDetails';
+import { LightningElement, api, wire, track } from 'lwc';
+import getScoreDetails from '@salesforce/apex/ScoringController.getScoreDetails';
+import { getRecordNotifyChange } from 'lightning/uiRecordApi';
 
 export default class LeadScoreCard extends LightningElement {
     @api recordId;
-    @track totalScore = 0;
-    @track matches = [];
+    @api objectApiName;
+    @track scoreData;
+    @track error;
     @track isLoading = true;
 
-    radius = 45;
-    circumference = 2 * Math.PI * 45; // ~282.74
-
-    connectedCallback() {
-        this.loadLeadScore();
+    // SVG parameters for the dial
+    circumference = 2 * Math.PI * 45; // 2 * pi * r
+    
+    get scoreDasharray() {
+        if (!this.scoreData) return `0 ${this.circumference}`;
+        // Map 0-100 score to circumference
+        const normalizedScore = Math.max(0, Math.min(100, this.scoreData.totalScore));
+        const fill = (normalizedScore / 100) * this.circumference;
+        return `${fill} ${this.circumference}`;
+    }
+    
+    get scoreColorClass() {
+        if (!this.scoreData) return 'dial-path neutral';
+        if (this.scoreData.totalScore >= 75) return 'dial-path hot';
+        if (this.scoreData.totalScore >= 40) return 'dial-path warm';
+        return 'dial-path cold';
     }
 
-    loadLeadScore() {
-        this.isLoading = true;
-        getLeadScoreDetails({ leadId: this.recordId })
-            .then(result => {
-                this.totalScore = result.totalScore;
-                this.matches = result.matches.map(m => {
-                    let scoreClass = 'points-positive';
-                    let formattedScore = `+${m.score}`;
-                    if (m.score < 0) {
-                        scoreClass = 'points-negative';
-                        formattedScore = `${m.score}`;
-                    } else if (m.score === 0) {
-                        scoreClass = 'points-neutral';
-                        formattedScore = '0';
-                    }
+    get displayScore() {
+        return this.scoreData ? this.scoreData.totalScore : 0;
+    }
 
-                    let opLabel = '=';
-                    if (m.operator === 'Not_Equals') opLabel = '!=';
-                    else if (m.operator === 'Greater_Than') opLabel = '>';
-                    else if (m.operator === 'Less_Than') opLabel = '<';
-                    else if (m.operator === 'Contains') opLabel = 'contains';
-                    else if (m.operator === 'IsBlank') opLabel = 'is blank';
-                    else if (m.operator === 'IsNotBlank') opLabel = 'is not blank';
+    get scoreLabel() {
+        if (!this.scoreData) return 'Unscored';
+        if (this.scoreData.totalScore >= 75) return 'Hot';
+        if (this.scoreData.totalScore >= 40) return 'Warm';
+        return 'Cold';
+    }
 
-                    return {
-                        ...m,
-                        scoreClass,
-                        formattedScore,
-                        operatorLabel: opLabel
-                    };
-                });
-                this.isLoading = false;
-            })
-            .catch(error => {
-                this.isLoading = false;
-                this.showToast('Error evaluating Lead', error.body?.message || 'Unknown error', 'error');
+    @wire(getScoreDetails, { recordId: '$recordId', objectApiName: '$objectApiName' })
+    wiredScore(result) {
+        this.isLoading = false;
+        if (result.data) {
+            // Process data for UI
+            let processedMatches = result.data.matches.map(m => {
+                let isPositive = m.score > 0;
+                let sign = isPositive ? '+' : '';
+                
+                // Format the operator to be user-friendly
+                let opLabel = '=';
+                if (m.operator === 'Not_Equals') opLabel = '!=';
+                else if (m.operator === 'Greater_Than') opLabel = '>';
+                else if (m.operator === 'Less_Than') opLabel = '<';
+                else if (m.operator === 'Contains') opLabel = 'contains';
+                else if (m.operator === 'IsBlank') opLabel = 'is blank';
+                else if (m.operator === 'IsNotBlank') opLabel = 'is not blank';
+
+                return {
+                    ...m,
+                    scoreDisplay: `${sign}${m.score}`,
+                    scoreClass: isPositive ? 'score-positive' : 'score-negative',
+                    displayCriteria: `${m.fieldLabel} ${opLabel} ${m.configuredValue}`
+                };
             });
+            
+            this.scoreData = {
+                totalScore: result.data.totalScore,
+                matches: processedMatches
+            };
+            this.error = undefined;
+        } else if (result.error) {
+            this.error = result.error;
+            this.scoreData = undefined;
+        }
     }
 
-    handleRefresh() {
-        this.loadLeadScore();
-    }
-
-    get strokeDashoffset() {
-        let visualScore = this.totalScore;
-        if (visualScore > 100) visualScore = 100;
-        if (visualScore < 0) visualScore = 0;
-        
-        return this.circumference - (visualScore / 100) * this.circumference;
-    }
-
-    get leadGrade() {
-        if (this.totalScore >= 70) return 'Hot Lead';
-        if (this.totalScore >= 35) return 'Warm Lead';
-        return 'Cold Lead';
-    }
-
-    get gradeDescription() {
-        if (this.totalScore >= 70) return 'High engagement and high-quality profile. Priority contact.';
-        if (this.totalScore >= 35) return 'Moderate matching signals. Nurture and monitor.';
-        return 'Low matching scores. Requires qualification or review.';
-    }
-
-    get badgeClass() {
-        if (this.totalScore >= 70) return 'badge badge-hot';
-        if (this.totalScore >= 35) return 'badge badge-warm';
-        return 'badge badge-cold';
-    }
-
-    get gradientStartColor() {
-        if (this.totalScore >= 70) return '#34d399'; // Emerald-400
-        if (this.totalScore >= 35) return '#fbbf24'; // Amber-400
-        return '#f87171'; // Red-400
-    }
-
-    get gradientEndColor() {
-        if (this.totalScore >= 70) return '#059669'; // Emerald-600
-        if (this.totalScore >= 35) return '#d97706'; // Amber-600
-        return '#e11d48'; // Rose-600
-    }
-
-    get hasMatches() {
-        return this.matches.length > 0;
-    }
-
-    get matchCount() {
-        return this.matches.length;
-    }
-
-    showToast(title, message, variant) {
-        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    refreshScore() {
+        this.isLoading = true;
+        // Trigger cache invalidation for this record
+        getRecordNotifyChange([{ recordId: this.recordId }]);
+        // Note: The wire will auto-refresh if the underlying record changes, 
+        // but an imperative call is better if we want to force it. 
+        // For simplicity, we just trigger the record notify change.
+        setTimeout(() => {
+            this.isLoading = false;
+        }, 500);
     }
 }
