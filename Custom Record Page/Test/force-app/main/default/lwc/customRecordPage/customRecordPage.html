@@ -1,0 +1,43 @@
+<template>
+    <div class="slds-card" style={backgroundStyle}>
+        <div class="slds-p-around_medium" style="background-color: rgba(255, 255, 255, 0.85); border-radius: 4px;">
+            
+            <template if:true={hasLayout}>
+                <lightning-record-edit-form record-id={recordId} object-api-name={objectApiName}>
+                    <template for:each={parsedLayout.sections} for:item="section">
+                        <div key={section.id} class="slds-section slds-is-open">
+                            <h3 class="slds-section__title slds-theme_shade">
+                                <span class="slds-truncate slds-p-horizontal_small">{section.name}</span>
+                            </h3>
+                            <div class="slds-section__content slds-grid slds-wrap">
+                                <template for:each={section.fields} for:item="field">
+                                    <div key={field.apiName} class="slds-col slds-size_1-of-2 slds-p-horizontal_small slds-m-bottom_small">
+                                        <!-- Read Only Field -->
+                                        <template if:true={field.readOnly}>
+                                            <lightning-output-field field-name={field.apiName}></lightning-output-field>
+                                        </template>
+                                        
+                                        <!-- Editable Field -->
+                                        <template if:false={field.readOnly}>
+                                            <lightning-input-field field-name={field.apiName} required={field.required}></lightning-input-field>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="slds-m-top_medium slds-text-align_center">
+                        <lightning-button variant="brand" type="submit" label="Save"></lightning-button>
+                    </div>
+                </lightning-record-edit-form>
+            </template>
+
+            <template if:false={hasLayout}>
+                <div class="slds-text-align_center slds-text-color_weak slds-p-around_medium">
+                    No active Dynamic Layout found for this object. Please publish a layout using the Dynamic Record Layout Builder.
+                </div>
+            </template>
+
+        </div>
+    </div>
+</template>

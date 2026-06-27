@@ -1,0 +1,121 @@
+<template>
+    <div class="slds-box slds-theme_default builder-container" onclick={handleCanvasClick}>
+        <!-- Toolbar -->
+        <div class="slds-page-header slds-m-bottom_small">
+            <div class="slds-page-header__row">
+                <div class="slds-page-header__col-title">
+                    <div class="slds-media">
+                        <div class="slds-media__body">
+                            <div class="slds-page-header__name">
+                                <div class="slds-page-header__name-title">
+                                    <h1><span class="slds-page-header__title slds-truncate">Dynamic Record Layout Builder</span></h1>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="slds-page-header__col-actions">
+                    <div class="slds-page-header__controls">
+                        <div class="slds-page-header__control">
+                            <lightning-button-group>
+                                <lightning-button label="Save Draft" variant="neutral" onclick={handleSaveDraft}></lightning-button>
+                                <lightning-button label="Publish" variant="brand" onclick={handlePublish}></lightning-button>
+                            </lightning-button-group>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Builder Area -->
+        <div class="slds-grid slds-gutters builder-main-area">
+            
+            <!-- Left Sidebar -->
+            <div class="slds-col slds-size_1-of-5 builder-sidebar-left">
+                <div class="slds-card" onclick={handleCanvasClick}>
+                    <div class="slds-p-around_medium">
+                        <lightning-combobox
+                            name="objectSelect" label="Select Object"
+                            value={selectedObject} options={objectOptions}
+                            onchange={handleObjectChange} class="slds-m-bottom_medium">
+                        </lightning-combobox>
+
+                        <template if:true={selectedObject}>
+                            <div class="field-list-container" style="max-height: 500px; overflow-y: auto;">
+                                <ul class="field-list-ul slds-has-dividers_bottom-space">
+                                    <template for:each={fields} for:item="field">
+                                        <li key={field.apiName} class="slds-item field-item slds-box slds-m-bottom_x-small" data-apiname={field.apiName} style="cursor: grab; background: white;">
+                                            <div class="slds-text-heading_small">{field.label}</div>
+                                            <div class="slds-text-body_small slds-text-color_weak">{field.apiName}</div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Canvas -->
+            <div class="slds-col slds-size_3-of-5 builder-canvas">
+                <div class="slds-card canvas-container" style="min-height: 600px; background-color: #f3f3f3; border: 2px dashed #cccccc; padding: 10px;">
+                    
+                    <template for:each={layoutConfiguration.sections} for:item="section">
+                        <!-- Click handler added to section -->
+                        <div key={section.id} class="slds-section slds-is-open slds-box slds-m-bottom_medium" style="background: white;" data-sectionid={section.id} onclick={handleSectionClick}>
+                            <h3 class="slds-section__title slds-theme_shade">
+                                <span class="slds-truncate slds-p-horizontal_small" title={section.name}>{section.name}</span>
+                            </h3>
+                            <div class="slds-section__content slds-p-top_small">
+                                <ul class="canvas-section-fields slds-grid slds-wrap" data-sectionid={section.id} style="min-height: 50px; border: 1px dashed #eee;">
+                                    <template for:each={section.fields} for:item="f">
+                                        <!-- Click handler added to field -->
+                                        <li key={f.apiName} class="slds-col slds-size_1-of-2 slds-p-around_x-small" data-apiname={f.apiName} data-sectionid={section.id} onclick={handleFieldClick} style="cursor: move;">
+                                            <div class="slds-box slds-box_x-small" style="background: #fdfdfd; border-color: #0070d2;">
+                                                <div class="slds-text-title_bold">{f.label}</div>
+                                                <div class="slds-text-body_small slds-text-color_weak">
+                                                    <template if:true={f.required}><span class="slds-text-color_error">* </span></template>
+                                                    {f.apiName}
+                                                    <template if:true={f.readOnly}> (Read Only)</template>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                    </template>
+
+                </div>
+            </div>
+
+            <!-- Right Sidebar: Properties -->
+            <div class="slds-col slds-size_1-of-5 builder-sidebar-right" onclick={handleCanvasClick}>
+                <div class="slds-card" style="min-height: 200px;">
+                    <div class="slds-p-around_medium" onclick={handleSectionClick}> <!-- Hack to prevent bubbling if clicking inside properties -->
+                        <div class="slds-text-heading_small slds-m-bottom_medium">Properties</div>
+                        
+                        <template if:true={isSectionSelected}>
+                            <div class="slds-text-title_caps slds-m-bottom_small">Section Configuration</div>
+                            <lightning-input label="Section Name" value={selectedSectionData.name} onchange={handleSectionNameChange}></lightning-input>
+                        </template>
+
+                        <template if:true={isFieldSelected}>
+                            <div class="slds-text-title_caps slds-m-bottom_small">Field Configuration</div>
+                            <div class="slds-text-heading_small slds-m-bottom_small">{selectedFieldData.label}</div>
+                            <lightning-input type="checkbox" label="Required" checked={selectedFieldData.required} onchange={handleFieldRequiredChange}></lightning-input>
+                            <lightning-input type="checkbox" label="Read Only" checked={selectedFieldData.readOnly} onchange={handleFieldReadOnlyChange} class="slds-m-top_small"></lightning-input>
+                        </template>
+
+                        <template if:true={isLayoutSelected}>
+                            <div class="slds-text-title_caps slds-m-bottom_small">Layout Configuration</div>
+                            <lightning-input label="Background Image URL" value={layoutConfiguration.backgroundImageUrl} onchange={handleBackgroundImageChange} placeholder="https://..." class="slds-m-bottom_medium"></lightning-input>
+                            <div class="slds-text-body_regular slds-text-color_weak slds-m-top_large">Select a section or field on the canvas to configure their specific properties.</div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</template>

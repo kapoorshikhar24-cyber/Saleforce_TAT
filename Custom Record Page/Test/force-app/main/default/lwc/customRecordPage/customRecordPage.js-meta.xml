@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Custom Record Page</masterLabel>
+    <description>A custom record page with configurable fields and background image.</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <property name="backgroundImageUrl" type="String" label="Background Image URL" description="Enter the URL of the background image." />
+            <property name="displayedFields" type="String" label="Displayed Fields" description="Comma-separated list of field API names to display (e.g. Name, Phone, Industry)." />
+            <property name="layoutConfigJSON" type="String" label="Layout Config JSON" description="JSON config" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

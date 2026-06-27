@@ -1,0 +1,12 @@
+.background-container {
+    width: 100%;
+    min-height: 400px;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.content-area {
+    /* Adding some opacity to make text readable against background */
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 4px;
+}
