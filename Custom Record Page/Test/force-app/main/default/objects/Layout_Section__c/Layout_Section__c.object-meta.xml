@@ -17,6 +17,6 @@
         <type>AutoNumber</type>
     </nameField>
     <pluralLabel>Layout Sections</pluralLabel>
-    <sharingModel>ControlledByParent</sharingModel>
+    <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>
 </CustomObject>

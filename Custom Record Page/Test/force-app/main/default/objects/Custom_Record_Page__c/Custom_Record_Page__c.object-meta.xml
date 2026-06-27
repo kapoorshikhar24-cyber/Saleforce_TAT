@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <deploymentStatus>Deployed</deploymentStatus>
-    <description>Stores the high-level dynamic record layout metadata.</description>
+    <description>Stores the layout metadata to manage custom recordpages.</description>
     <enableActivities>false</enableActivities>
     <enableBulkApi>true</enableBulkApi>
     <enableFeeds>false</enableFeeds>
@@ -10,12 +10,12 @@
     <enableSearch>false</enableSearch>
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
-    <label>Dynamic Layout</label>
+    <label>Custom Record Page</label>
     <nameField>
-        <label>Layout Name</label>
+        <label>Custom Record Page Name</label>
         <type>Text</type>
     </nameField>
-    <pluralLabel>Dynamic Layouts</pluralLabel>
+    <pluralLabel>Custom Record Pages</pluralLabel>
     <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>
 </CustomObject>

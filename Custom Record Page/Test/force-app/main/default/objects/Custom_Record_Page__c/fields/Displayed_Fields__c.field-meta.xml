@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Displayed_Fields__c</fullName>
-    <description>Stores the comma-separated or text list of fields displayed in the layout.</description>
     <externalId>false</externalId>
     <label>Displayed Fields</label>
     <length>131072</length>
