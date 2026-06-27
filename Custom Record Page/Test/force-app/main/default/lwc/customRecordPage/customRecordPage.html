@@ -3,25 +3,46 @@
         <div class="slds-p-around_medium" style="background-color: rgba(255, 255, 255, 0.85); border-radius: 4px;">
             
             <template if:true={hasLayout}>
-                <lightning-record-edit-form record-id={recordId} object-api-name={objectApiName}>
+                <lightning-record-edit-form record-id={recordId} object-api-name={objectApiName} onsuccess={handleSuccess} onerror={handleError}>
                     <template for:each={parsedLayout.sections} for:item="section">
-                        <div key={section.id} class="slds-section slds-is-open">
+                        <div key={section.id} class="slds-section slds-is-open slds-m-bottom_medium">
                             <h3 class="slds-section__title slds-theme_shade">
                                 <span class="slds-truncate slds-p-horizontal_small">{section.name}</span>
                             </h3>
                             <div class="slds-section__content slds-grid slds-wrap">
+                                <!-- Parent Fields -->
                                 <template for:each={section.fields} for:item="field">
-                                    <div key={field.apiName} class="slds-col slds-size_1-of-2 slds-p-horizontal_small slds-m-bottom_small">
-                                        <!-- Read Only Field -->
+                                    <div key={field.apiName} class={section.columnClass}>
                                         <template if:true={field.readOnly}>
                                             <lightning-output-field field-name={field.apiName}></lightning-output-field>
                                         </template>
-                                        
-                                        <!-- Editable Field -->
                                         <template if:false={field.readOnly}>
                                             <lightning-input-field field-name={field.apiName} required={field.required}></lightning-input-field>
                                         </template>
                                     </div>
+                                </template>
+                                
+                                <!-- Subsections -->
+                                <template if:true={section.subsections}>
+                                    <template for:each={section.subsections} for:item="sub">
+                                        <div key={sub.id} class="slds-col slds-size_1-of-1 slds-section slds-is-open slds-m-top_small slds-p-left_medium" style="border-left: 2px solid #dddddd;">
+                                            <h4 class="slds-section__title slds-theme_shade" style="font-size: 0.9rem;">
+                                                <span class="slds-truncate slds-p-horizontal_small">{sub.name}</span>
+                                            </h4>
+                                            <div class="slds-section__content slds-grid slds-wrap">
+                                                <template for:each={sub.fields} for:item="field">
+                                                    <div key={field.apiName} class={sub.columnClass}>
+                                                        <template if:true={field.readOnly}>
+                                                            <lightning-output-field field-name={field.apiName}></lightning-output-field>
+                                                        </template>
+                                                        <template if:false={field.readOnly}>
+                                                            <lightning-input-field field-name={field.apiName} required={field.required}></lightning-input-field>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
                                 </template>
                             </div>
                         </div>

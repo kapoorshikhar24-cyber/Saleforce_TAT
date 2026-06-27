@@ -11,8 +11,6 @@ public with sharing class SchemaService {
                 objectsList.add(objMap);
             }
         }
-        // Sort alphabetically
-        objectsList.sort(); // Needs a custom sorter if we want label sort, but value sort happens automatically on simple list if string. For Maps, we sort in JS.
         return objectsList;
     }
 

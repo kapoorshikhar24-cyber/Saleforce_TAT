@@ -5,11 +5,14 @@ import SortableJS from '@salesforce/resourceUrl/SortableJS';
 import getAllObjects from '@salesforce/apex/SchemaService.getAllObjects';
 import getObjectFields from '@salesforce/apex/SchemaService.getObjectFields';
 import saveLayout from '@salesforce/apex/LayoutManagerService.saveLayout';
+import getOrCreateLayout from '@salesforce/apex/LayoutManagerService.getOrCreateLayout';
+import getUploadedImageUrl from '@salesforce/apex/LayoutManagerService.getUploadedImageUrl';
 
 export default class DynamicLayoutBuilder extends LightningElement {
     @track selectedObject = '';
     @track objectOptions = [];
     @track fields = [];
+    @track layoutRecordId = '';
     
     @track layoutConfiguration = {
         backgroundImageUrl: '',
@@ -27,6 +30,8 @@ export default class DynamicLayoutBuilder extends LightningElement {
     wiredObjects({ error, data }) {
         if (data) {
             this.objectOptions = [...data].sort((a, b) => a.label.localeCompare(b.label));
+        } else if (error) {
+            console.error('Error fetching objects:', error);
         }
     }
 
@@ -40,6 +45,32 @@ export default class DynamicLayoutBuilder extends LightningElement {
 
     handleObjectChange(event) {
         this.selectedObject = event.detail.value;
+        this.layoutRecordId = '';
+        this.selectedNode = null;
+        
+        getOrCreateLayout({ objectApiName: this.selectedObject })
+            .then(data => {
+                this.layoutRecordId = data.recordId;
+                if (data.layoutConfigJson) {
+                    try {
+                        this.layoutConfiguration = JSON.parse(data.layoutConfigJson);
+                    } catch (e) {
+                        console.error('Error parsing loaded layout JSON', e);
+                    }
+                } else {
+                    // Reset to default template if no layout exists
+                    this.layoutConfiguration = {
+                        backgroundImageUrl: data.backgroundImageUrl || '',
+                        sections: [
+                            { id: 'section_1', name: 'Information', columns: 2, fields: [] }
+                        ]
+                    };
+                }
+                setTimeout(() => this.initializeSortable(), 100);
+            })
+            .catch(error => {
+                this.dispatchEvent(new ShowToastEvent({ title: 'Error loading layout', message: error.body ? error.body.message : error.message, variant: 'error' }));
+            });
     }
 
     renderedCallback() {
@@ -77,6 +108,17 @@ export default class DynamicLayoutBuilder extends LightningElement {
         });
     }
 
+    findSectionById(sections, id) {
+        for (let sec of sections) {
+            if (sec.id === id) return sec;
+            if (sec.subsections) {
+                let sub = sec.subsections.find(s => s.id === id);
+                if (sub) return sub;
+            }
+        }
+        return null;
+    }
+
     handleDrop(evt) {
         evt.item.parentNode.removeChild(evt.item);
         const fieldApiName = evt.item.dataset.apiname;
@@ -85,11 +127,10 @@ export default class DynamicLayoutBuilder extends LightningElement {
         const fieldData = this.fields.find(f => f.apiName === fieldApiName);
         if (!fieldData) return;
         
-        // Clone field data so we can modify properties per instance
         const fieldInstance = { ...fieldData, required: fieldData.isRequired, readOnly: !fieldData.isUpdateable };
 
         let sections = JSON.parse(JSON.stringify(this.layoutConfiguration.sections));
-        let section = sections.find(s => s.id === sectionId);
+        let section = this.findSectionById(sections, sectionId);
         if (section) {
             section.fields.splice(evt.newIndex, 0, fieldInstance);
             this.layoutConfiguration.sections = sections;
@@ -99,7 +140,7 @@ export default class DynamicLayoutBuilder extends LightningElement {
     handleUpdate(evt) {
         const sectionId = evt.to.dataset.sectionid;
         let sections = JSON.parse(JSON.stringify(this.layoutConfiguration.sections));
-        let section = sections.find(s => s.id === sectionId);
+        let section = this.findSectionById(sections, sectionId);
         if (section) {
             const item = section.fields.splice(evt.oldIndex, 1)[0];
             section.fields.splice(evt.newIndex, 0, item);
@@ -128,6 +169,10 @@ export default class DynamicLayoutBuilder extends LightningElement {
     }
 
     get isSectionSelected() {
+        return this.selectedNode && (this.selectedNode.type === 'section' || this.selectedNode.type === 'subsection');
+    }
+
+    get isTopLevelSectionSelected() {
         return this.selectedNode && this.selectedNode.type === 'section';
     }
 
@@ -141,17 +186,200 @@ export default class DynamicLayoutBuilder extends LightningElement {
 
     get selectedSectionData() {
         if (!this.isSectionSelected) return null;
-        return this.layoutConfiguration.sections.find(s => s.id === this.selectedNode.sectionId);
+        if (this.selectedNode.type === 'section') {
+            return this.layoutConfiguration.sections.find(s => s.id === this.selectedNode.sectionId);
+        } else {
+            let parent = this.layoutConfiguration.sections.find(s => s.id === this.selectedNode.parentSectionId);
+            return parent && parent.subsections ? parent.subsections.find(sub => sub.id === this.selectedNode.sectionId) : null;
+        }
+    }
+
+    get selectedSectionName() {
+        const data = this.selectedSectionData;
+        return data ? data.name : '';
+    }
+
+    get selectedSectionColumns() {
+        const data = this.selectedSectionData;
+        return data ? data.columns : 2;
     }
 
     get selectedFieldData() {
         if (!this.isFieldSelected) return null;
-        const section = this.layoutConfiguration.sections.find(s => s.id === this.selectedNode.sectionId);
-        return section.fields.find(f => f.apiName === this.selectedNode.apiName);
+        for (let sec of this.layoutConfiguration.sections) {
+            let field = sec.fields.find(f => f.apiName === this.selectedNode.apiName);
+            if (field) return field;
+            if (sec.subsections) {
+                for (let sub of sec.subsections) {
+                    let subField = sub.fields.find(f => f.apiName === this.selectedNode.apiName);
+                    if (subField) return subField;
+                }
+            }
+        }
+        return null;
+    }
+
+    handleSubsectionClick(event) {
+        event.stopPropagation();
+        const subId = event.currentTarget.dataset.subid;
+        const parentId = event.currentTarget.dataset.parentid;
+        this.selectedNode = { type: 'subsection', sectionId: subId, parentSectionId: parentId };
+    }
+
+    get selectedFieldLabel() {
+        const data = this.selectedFieldData;
+        return data ? data.label : '';
+    }
+
+    get selectedFieldRequired() {
+        const data = this.selectedFieldData;
+        return data ? data.required : false;
+    }
+
+    get selectedFieldReadOnly() {
+        const data = this.selectedFieldData;
+        return data ? data.readOnly : false;
+    }
+
+    get renderedSections() {
+        return this.layoutConfiguration.sections.map(section => {
+            const cols = parseInt(section.columns || 2, 10);
+            let sizeClass = 'slds-size_1-of-2';
+            if (cols === 1) sizeClass = 'slds-size_1-of-1';
+            else if (cols === 3) sizeClass = 'slds-size_1-of-3';
+            else if (cols === 4) sizeClass = 'slds-size_1-of-4';
+            
+            let subsections = [];
+            if (section.subsections) {
+                subsections = section.subsections.map(sub => {
+                    const subCols = parseInt(sub.columns || 2, 10);
+                    let subSize = 'slds-size_1-of-2';
+                    if (subCols === 1) subSize = 'slds-size_1-of-1';
+                    else if (subCols === 3) subSize = 'slds-size_1-of-3';
+                    else if (subCols === 4) subSize = 'slds-size_1-of-4';
+                    return {
+                        ...sub,
+                        fieldClass: `slds-col ${subSize} slds-p-around_x-small`
+                    };
+                });
+            }
+            
+            return {
+                ...section,
+                fieldClass: `slds-col ${sizeClass} slds-p-around_x-small`,
+                subsections
+            };
+        });
+    }
+
+    get columnOptions() {
+        return [
+            { label: '1 Column', value: 1 },
+            { label: '2 Columns', value: 2 },
+            { label: '3 Columns', value: 3 },
+            { label: '4 Columns', value: 4 }
+        ];
+    }
+
+    handleAddSection(event) {
+        event.stopPropagation();
+        const nextId = `section_${Date.now()}`;
+        const newSection = {
+            id: nextId,
+            name: `New Section ${this.layoutConfiguration.sections.length + 1}`,
+            columns: 2,
+            fields: [],
+            subsections: []
+        };
+        this.layoutConfiguration.sections = [...this.layoutConfiguration.sections, newSection];
+        setTimeout(() => this.initializeSortable(), 100);
+    }
+
+    handleAddSubsection(event) {
+        event.stopPropagation();
+        if (!this.selectedNode || this.selectedNode.type !== 'section') return;
+        const parentId = this.selectedNode.sectionId;
+        
+        let sections = JSON.parse(JSON.stringify(this.layoutConfiguration.sections));
+        let parent = sections.find(s => s.id === parentId);
+        if (parent) {
+            if (!parent.subsections) parent.subsections = [];
+            const nextSubId = `sub_${Date.now()}`;
+            parent.subsections.push({
+                id: nextSubId,
+                name: `Subsection ${parent.subsections.length + 1}`,
+                columns: 2,
+                fields: []
+            });
+            this.layoutConfiguration.sections = sections;
+            setTimeout(() => this.initializeSortable(), 100);
+        }
+    }
+
+    handleDeleteSection(event) {
+        event.stopPropagation();
+        if (!this.selectedNode) return;
+        
+        let sections = JSON.parse(JSON.stringify(this.layoutConfiguration.sections));
+        if (this.selectedNode.type === 'section') {
+            const sectionId = this.selectedNode.sectionId;
+            sections = sections.filter(s => s.id !== sectionId);
+        } else if (this.selectedNode.type === 'subsection') {
+            const parentId = this.selectedNode.parentSectionId;
+            const subId = this.selectedNode.sectionId;
+            let parent = sections.find(s => s.id === parentId);
+            if (parent && parent.subsections) {
+                parent.subsections = parent.subsections.filter(sub => sub.id !== subId);
+            }
+        }
+        
+        this.layoutConfiguration.sections = sections;
+        this.selectedNode = null; // Deselect
+        setTimeout(() => this.initializeSortable(), 100);
+    }
+
+    handleSectionColumnsChange(event) {
+        const cols = parseInt(event.detail.value, 10);
+        let sections = JSON.parse(JSON.stringify(this.layoutConfiguration.sections));
+        if (this.selectedNode.type === 'section') {
+            let section = sections.find(s => s.id === this.selectedNode.sectionId);
+            if (section) section.columns = cols;
+        } else if (this.selectedNode.type === 'subsection') {
+            let parent = sections.find(s => s.id === this.selectedNode.parentSectionId);
+            if (parent && parent.subsections) {
+                let sub = parent.subsections.find(s => s.id === this.selectedNode.sectionId);
+                if (sub) sub.columns = cols;
+            }
+        }
+        this.layoutConfiguration.sections = sections;
     }
 
     handleBackgroundImageChange(event) {
         this.layoutConfiguration.backgroundImageUrl = event.target.value;
+    }
+
+    handleUploadFinished(event) {
+        const uploadedFiles = event.detail.files;
+        if (uploadedFiles && uploadedFiles.length > 0) {
+            const docId = uploadedFiles[0].documentId;
+            getUploadedImageUrl({ documentId: docId })
+                .then(url => {
+                    this.layoutConfiguration.backgroundImageUrl = url;
+                    this.layoutConfiguration = { ...this.layoutConfiguration };
+                    this.dispatchEvent(new ShowToastEvent({
+                        title: 'Success',
+                        message: 'Image uploaded and set as background successfully!',
+                        variant: 'success'
+                    }));
+                })
+                .catch(error => {
+                    this.dispatchEvent(new ShowToastEvent({
+                        title: 'Error retrieving image',
+                        message: error.body ? error.body.message : error.message,
+                        variant: 'error'
+                    }));
+                });
+        }
     }
 
     handleSectionNameChange(event) {
