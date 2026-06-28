@@ -10,6 +10,7 @@ export default class CustomRecordPage2 extends LightningElement {
     @api layoutConfigJSON; 
 
     @track parsedLayout = null;
+    @track isEditMode = false;
 
     get backgroundStyle() {
         let bgUrl = this.backgroundImageUrl;
@@ -34,7 +35,16 @@ export default class CustomRecordPage2 extends LightningElement {
         }
     }
 
+    handleEdit() {
+        this.isEditMode = true;
+    }
+
+    handleCancel() {
+        this.isEditMode = false;
+    }
+
     handleSuccess(event) {
+        this.isEditMode = false;
         this.dispatchEvent(
             new ShowToastEvent({
                 title: 'Success',

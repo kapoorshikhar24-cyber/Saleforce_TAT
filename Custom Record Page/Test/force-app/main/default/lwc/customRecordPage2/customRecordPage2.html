@@ -3,58 +3,112 @@
         <div class="slds-p-around_medium" style="background-color: rgba(255, 255, 255, 0.85); border-radius: 4px;">
             
             <template if:true={hasLayout}>
-                <lightning-record-edit-form record-id={recordId} object-api-name={objectApiName} onsuccess={handleSuccess} onerror={handleError}>
-                    <div class="slds-grid slds-wrap">
-                        <template for:each={parsedLayout.sections} for:item="section">
-                            <div key={section.id} class={section.widthClass}>
-                                <div class="slds-section slds-is-open slds-m-bottom_medium">
-                                    <h3 class="slds-section__title slds-theme_shade">
-                                        <span class="slds-truncate slds-p-horizontal_small">{section.name}</span>
-                                    </h3>
-                                    <div class={section.fieldsContainerClass}>
-                                        <!-- Parent Fields -->
-                                        <template for:each={section.fields} for:item="field">
-                                            <div key={field.apiName} class={section.columnClass}>
-                                                <template if:true={field.readOnly}>
+                <!-- Mode Toggle Action Header -->
+                <div class="slds-grid slds-grid_align-end slds-m-bottom_medium">
+                    <template if:false={isEditMode}>
+                        <lightning-button label="Edit" variant="brand" icon-name="utility:edit" onclick={handleEdit}></lightning-button>
+                    </template>
+                </div>
+
+                <!-- VIEW MODE -->
+                <template if:false={isEditMode}>
+                    <lightning-record-view-form record-id={recordId} object-api-name={objectApiName}>
+                        <div class="slds-grid slds-wrap">
+                            <template for:each={parsedLayout.sections} for:item="section">
+                                <div key={section.id} class={section.widthClass}>
+                                    <div class="slds-section slds-is-open slds-m-bottom_medium">
+                                        <h3 class="slds-section__title slds-theme_shade">
+                                            <span class="slds-truncate slds-p-horizontal_small">{section.name}</span>
+                                        </h3>
+                                        <div class={section.fieldsContainerClass}>
+                                            <!-- Parent Fields -->
+                                            <template for:each={section.fields} for:item="field">
+                                                <div key={field.apiName} class={section.columnClass}>
                                                     <lightning-output-field field-name={field.apiName}></lightning-output-field>
-                                                </template>
-                                                <template if:false={field.readOnly}>
-                                                    <lightning-input-field field-name={field.apiName} required={field.required}></lightning-input-field>
-                                                </template>
-                                            </div>
-                                        </template>
-                                        
-                                        <!-- Subsections -->
-                                        <template if:true={section.subsections}>
-                                            <template for:each={section.subsections} for:item="sub">
-                                                <div key={sub.id} class="slds-col slds-size_1-of-1 slds-section slds-is-open slds-m-top_small slds-p-left_medium" style="border-left: 2px solid #dddddd;">
-                                                    <h4 class="slds-section__title slds-theme_shade" style="font-size: 0.9rem;">
-                                                        <span class="slds-truncate slds-p-horizontal_small">{sub.name}</span>
-                                                    </h4>
-                                                    <div class={sub.fieldsContainerClass}>
-                                                        <template for:each={sub.fields} for:item="field">
-                                                            <div key={field.apiName} class={sub.columnClass}>
-                                                                <template if:true={field.readOnly}>
-                                                                    <lightning-output-field field-name={field.apiName}></lightning-output-field>
-                                                                </template>
-                                                                <template if:false={field.readOnly}>
-                                                                    <lightning-input-field field-name={field.apiName} required={field.required}></lightning-input-field>
-                                                                </template>
-                                                            </div>
-                                                        </template>
-                                                    </div>
                                                 </div>
                                             </template>
-                                        </template>
+                                            
+                                            <!-- Subsections -->
+                                            <template if:true={section.subsections}>
+                                                <template for:each={section.subsections} for:item="sub">
+                                                    <div key={sub.id} class="slds-col slds-size_1-of-1 slds-section slds-is-open slds-m-top_small slds-p-left_medium" style="border-left: 2px solid #dddddd;">
+                                                        <h4 class="slds-section__title slds-theme_shade" style="font-size: 0.9rem;">
+                                                            <span class="slds-truncate slds-p-horizontal_small">{sub.name}</span>
+                                                        </h4>
+                                                        <div class={sub.fieldsContainerClass}>
+                                                            <template for:each={sub.fields} for:item="field">
+                                                                <div key={field.apiName} class={sub.columnClass}>
+                                                                    <lightning-output-field field-name={field.apiName}></lightning-output-field>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </template>
-                    </div>
-                    <div class="slds-m-top_medium slds-text-align_center">
-                        <lightning-button variant="brand" type="submit" label="Save"></lightning-button>
-                    </div>
-                </lightning-record-edit-form>
+                            </template>
+                        </div>
+                    </lightning-record-view-form>
+                </template>
+
+                <!-- EDIT MODE -->
+                <template if:true={isEditMode}>
+                    <lightning-record-edit-form record-id={recordId} object-api-name={objectApiName} onsuccess={handleSuccess} onerror={handleError}>
+                        <div class="slds-grid slds-wrap">
+                            <template for:each={parsedLayout.sections} for:item="section">
+                                <div key={section.id} class={section.widthClass}>
+                                    <div class="slds-section slds-is-open slds-m-bottom_medium">
+                                        <h3 class="slds-section__title slds-theme_shade">
+                                            <span class="slds-truncate slds-p-horizontal_small">{section.name}</span>
+                                        </h3>
+                                        <div class={section.fieldsContainerClass}>
+                                            <!-- Parent Fields -->
+                                            <template for:each={section.fields} for:item="field">
+                                                <div key={field.apiName} class={section.columnClass}>
+                                                    <template if:true={field.readOnly}>
+                                                        <lightning-output-field field-name={field.apiName}></lightning-output-field>
+                                                    </template>
+                                                    <template if:false={field.readOnly}>
+                                                        <lightning-input-field field-name={field.apiName} required={field.required}></lightning-input-field>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                            
+                                            <!-- Subsections -->
+                                            <template if:true={section.subsections}>
+                                                <template for:each={section.subsections} for:item="sub">
+                                                    <div key={sub.id} class="slds-col slds-size_1-of-1 slds-section slds-is-open slds-m-top_small slds-p-left_medium" style="border-left: 2px solid #dddddd;">
+                                                        <h4 class="slds-section__title slds-theme_shade" style="font-size: 0.9rem;">
+                                                            <span class="slds-truncate slds-p-horizontal_small">{sub.name}</span>
+                                                        </h4>
+                                                        <div class={sub.fieldsContainerClass}>
+                                                            <template for:each={sub.fields} for:item="field">
+                                                                <div key={field.apiName} class={sub.columnClass}>
+                                                                    <template if:true={field.readOnly}>
+                                                                        <lightning-output-field field-name={field.apiName}></lightning-output-field>
+                                                                    </template>
+                                                                    <template if:false={field.readOnly}>
+                                                                        <lightning-input-field field-name={field.apiName} required={field.required}></lightning-input-field>
+                                                                    </template>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="slds-m-top_medium slds-text-align_center">
+                            <lightning-button label="Cancel" onclick={handleCancel} class="slds-m-right_small"></lightning-button>
+                            <lightning-button variant="brand" type="submit" label="Save"></lightning-button>
+                        </div>
+                    </lightning-record-edit-form>
+                </template>
             </template>
 
             <template if:false={hasLayout}>
