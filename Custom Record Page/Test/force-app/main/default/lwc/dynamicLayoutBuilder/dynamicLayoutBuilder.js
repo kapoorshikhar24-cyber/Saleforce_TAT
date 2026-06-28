@@ -82,6 +82,10 @@ export default class DynamicLayoutBuilder extends LightningElement {
         }).catch(err => console.error(err));
     }
 
+    handleSidebarClick(event) {
+        event.stopPropagation();
+    }
+
     initializeSortable() {
         if (!this.sortableInitialized) return;
 
@@ -106,6 +110,22 @@ export default class DynamicLayoutBuilder extends LightningElement {
             });
             this.sortableInstances.push(sectionInstance);
         });
+
+        // Initialize top-level sections reordering
+        const sectionsEl = this.template.querySelector('.canvas-sections-list');
+        if (sectionsEl) {
+            const sectionsInstance = window.Sortable.create(sectionsEl, {
+                animation: 150,
+                handle: '.slds-section__title',
+                onEnd: (evt) => {
+                    let sections = JSON.parse(JSON.stringify(this.layoutConfiguration.sections));
+                    const item = sections.splice(evt.oldIndex, 1)[0];
+                    sections.splice(evt.newIndex, 0, item);
+                    this.layoutConfiguration.sections = sections;
+                }
+            });
+            this.sortableInstances.push(sectionsInstance);
+        }
     }
 
     findSectionById(sections, id) {
@@ -248,6 +268,13 @@ export default class DynamicLayoutBuilder extends LightningElement {
             if (cols === 1) sizeClass = 'slds-size_1-of-1';
             else if (cols === 3) sizeClass = 'slds-size_1-of-3';
             else if (cols === 4) sizeClass = 'slds-size_1-of-4';
+            else if (cols === 6) sizeClass = 'slds-size_1-of-6';
+            
+            const w = parseInt(section.width || 12, 10);
+            let widthSize = 'slds-size_1-of-1';
+            if (w === 6) widthSize = 'slds-size_1-of-2';
+            else if (w === 4) widthSize = 'slds-size_1-of-3';
+            else if (w === 3) widthSize = 'slds-size_1-of-4';
             
             let subsections = [];
             if (section.subsections) {
@@ -257,16 +284,31 @@ export default class DynamicLayoutBuilder extends LightningElement {
                     if (subCols === 1) subSize = 'slds-size_1-of-1';
                     else if (subCols === 3) subSize = 'slds-size_1-of-3';
                     else if (subCols === 4) subSize = 'slds-size_1-of-4';
+                    else if (subCols === 6) subSize = 'slds-size_1-of-6';
+                    
+                    let subContainerClass = 'canvas-section-fields slds-grid slds-wrap';
+                    if (sub.horizontalScroll) {
+                        subContainerClass = 'canvas-section-fields slds-grid scrollable-fields-container';
+                    }
+                    
                     return {
                         ...sub,
-                        fieldClass: `slds-col ${subSize} slds-p-around_x-small`
+                        fieldClass: `slds-col ${subSize} slds-p-around_x-small`,
+                        fieldsContainerClass: subContainerClass
                     };
                 });
+            }
+            
+            let containerClass = 'canvas-section-fields slds-grid slds-wrap';
+            if (section.horizontalScroll) {
+                containerClass = 'canvas-section-fields slds-grid scrollable-fields-container';
             }
             
             return {
                 ...section,
                 fieldClass: `slds-col ${sizeClass} slds-p-around_x-small`,
+                widthClass: `slds-col ${widthSize} slds-p-horizontal_small slds-m-bottom_medium`,
+                fieldsContainerClass: containerClass,
                 subsections
             };
         });
@@ -277,8 +319,28 @@ export default class DynamicLayoutBuilder extends LightningElement {
             { label: '1 Column', value: 1 },
             { label: '2 Columns', value: 2 },
             { label: '3 Columns', value: 3 },
-            { label: '4 Columns', value: 4 }
+            { label: '4 Columns', value: 4 },
+            { label: '6 Columns', value: 6 }
         ];
+    }
+
+    get widthOptions() {
+        return [
+            { label: '100% (Full Width)', value: 12 },
+            { label: '50% (Half Width)', value: 6 },
+            { label: '33% (1/3 Width)', value: 4 },
+            { label: '25% (1/4 Width)', value: 3 }
+        ];
+    }
+
+    get selectedSectionWidth() {
+        const data = this.selectedSectionData;
+        return data ? (data.width || 12) : 12;
+    }
+
+    get selectedSectionScroll() {
+        const data = this.selectedSectionData;
+        return data ? !!data.horizontalScroll : false;
     }
 
     handleAddSection(event) {
@@ -288,6 +350,8 @@ export default class DynamicLayoutBuilder extends LightningElement {
             id: nextId,
             name: `New Section ${this.layoutConfiguration.sections.length + 1}`,
             columns: 2,
+            width: 12,
+            horizontalScroll: false,
             fields: [],
             subsections: []
         };
@@ -349,6 +413,32 @@ export default class DynamicLayoutBuilder extends LightningElement {
             if (parent && parent.subsections) {
                 let sub = parent.subsections.find(s => s.id === this.selectedNode.sectionId);
                 if (sub) sub.columns = cols;
+            }
+        }
+        this.layoutConfiguration.sections = sections;
+    }
+
+    handleSectionWidthChange(event) {
+        const w = parseInt(event.detail.value, 10);
+        let sections = JSON.parse(JSON.stringify(this.layoutConfiguration.sections));
+        if (this.selectedNode.type === 'section') {
+            let section = sections.find(s => s.id === this.selectedNode.sectionId);
+            if (section) section.width = w;
+        }
+        this.layoutConfiguration.sections = sections;
+    }
+
+    handleSectionScrollChange(event) {
+        const scroll = event.target.checked;
+        let sections = JSON.parse(JSON.stringify(this.layoutConfiguration.sections));
+        if (this.selectedNode.type === 'section') {
+            let section = sections.find(s => s.id === this.selectedNode.sectionId);
+            if (section) section.horizontalScroll = scroll;
+        } else if (this.selectedNode.type === 'subsection') {
+            let parent = sections.find(s => s.id === this.selectedNode.parentSectionId);
+            if (parent && parent.subsections) {
+                let sub = parent.subsections.find(s => s.id === this.selectedNode.sectionId);
+                if (sub) sub.horizontalScroll = scroll;
             }
         }
         this.layoutConfiguration.sections = sections;

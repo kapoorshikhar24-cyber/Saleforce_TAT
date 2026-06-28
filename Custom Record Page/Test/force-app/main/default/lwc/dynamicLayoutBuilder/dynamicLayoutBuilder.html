@@ -43,74 +43,94 @@
                         <template if:true={selectedObject}>
                             <lightning-button label="Add Section" variant="brand-outline" icon-name="utility:add" onclick={handleAddSection} class="slds-m-bottom_medium slds-stretch"></lightning-button>
                             
-                            <div class="field-list-container" style="max-height: 500px; overflow-y: auto;">
-                                <ul class="field-list-ul slds-has-dividers_bottom-space">
-                                    <template for:each={fields} for:item="field">
-                                        <li key={field.apiName} class="slds-item field-item slds-box slds-m-bottom_x-small" data-apiname={field.apiName} style="cursor: grab; background: white;">
-                                            <div class="slds-text-heading_small">{field.label}</div>
-                                            <div class="slds-text-body_small slds-text-color_weak">{field.apiName}</div>
-                                        </li>
-                                    </template>
-                                </ul>
-                            </div>
+                            <div class="slds-text-heading_small slds-m-bottom_medium slds-border_bottom slds-p-bottom_small">Available Fields</div>
+                            
+                            <ul class="field-list-ul" style="max-height: 500px; overflow-y: auto;">
+                                <template for:each={fields} for:item="f">
+                                    <li key={f.apiName} class="field-item slds-m-bottom_small" data-apiname={f.apiName} style="cursor: move;">
+                                        <div class="slds-box slds-box_x-small slds-grid slds-grid_vertical-align-center" style="background: #ffffff; border: 1px solid #dddbda; border-radius: 4px; transition: all 0.2s ease;">
+                                            <lightning-icon icon-name="utility:rows" size="x-small" class="slds-m-right_small slds-text-color_weak"></lightning-icon>
+                                            <div>
+                                                <div class="slds-text-title_bold" style="font-size: 0.85rem; color: #2b303a;">{f.label}</div>
+                                                <div class="slds-text-body_small slds-text-color_weak" style="font-size: 0.75rem;">{f.apiName}</div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
                         </template>
                     </div>
                 </div>
             </div>
 
             <!-- Center Canvas -->
-            <div class="slds-col slds-size_3-of-5 builder-canvas">
-                <div class="slds-card canvas-container" style="min-height: 600px; background-color: #f3f3f3; border: 2px dashed #cccccc; padding: 10px;">
+            <div class="slds-col slds-size_3-of-5 builder-canvas" style="background: #f4f6f9; padding: 15px;">
+                <div class="slds-card canvas-container" style="min-height: 600px; background-color: #ffffff; border: 1px solid #dddbda; border-radius: 8px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                     
-                    <template for:each={renderedSections} for:item="section">
-                        <!-- Click handler added to section -->
-                        <div key={section.id} class="slds-section slds-is-open slds-box slds-m-bottom_medium" style="background: white;" data-sectionid={section.id} onclick={handleSectionClick}>
-                            <h3 class="slds-section__title slds-theme_shade">
-                                <span class="slds-truncate slds-p-horizontal_small" title={section.name}>{section.name} ({section.columns} Columns)</span>
-                            </h3>
-                            <div class="slds-section__content slds-p-top_small">
-                                <ul class="canvas-section-fields slds-grid slds-wrap" data-sectionid={section.id} style="min-height: 50px; border: 1px dashed #eee;">
-                                    <template for:each={section.fields} for:item="f">
-                                        <!-- Click handler added to field -->
-                                        <li key={f.apiName} class={section.fieldClass} data-apiname={f.apiName} data-sectionid={section.id} onclick={handleFieldClick} style="cursor: move;">
-                                            <div class="slds-box slds-box_x-small" style="background: #fdfdfd; border-color: #0070d2;">
-                                                <div class="slds-text-title_bold">{f.label}</div>
-                                                <div class="slds-text-body_small slds-text-color_weak">
-                                                    <template if:true={f.required}><span class="slds-text-color_error">* </span></template>
-                                                    {f.apiName}
-                                                    <template if:true={f.readOnly}> (Read Only)</template>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    </template>
-                                </ul>
-
-                                <!-- Nested Subsections List -->
-                                <template if:true={section.subsections}>
-                                    <div class="slds-m-top_small slds-p-horizontal_small">
-                                        <template for:each={section.subsections} for:item="sub">
-                                            <div key={sub.id} class="slds-box slds-m-bottom_small slds-theme_shade" style="border-left: 3px solid #0070d2; cursor: pointer;" data-subid={sub.id} data-parentid={section.id} onclick={handleSubsectionClick}>
-                                                <div class="slds-text-title_caps slds-m-bottom_x-small">{sub.name} ({sub.columns} Columns)</div>
-                                                <ul class="canvas-section-fields slds-grid slds-wrap" data-sectionid={sub.id} style="min-height: 50px; border: 1px dashed #ccc; background: white;">
-                                                    <template for:each={sub.fields} for:item="sf">
-                                                        <li key={sf.apiName} class={sub.fieldClass} data-apiname={sf.apiName} data-sectionid={sub.id} onclick={handleFieldClick} style="cursor: move;">
-                                                            <div class="slds-box slds-box_x-small" style="background: #fdfdfd; border-color: #0070d2;">
-                                                                <div class="slds-text-title_bold">{sf.label}</div>
-                                                                <div class="slds-text-body_small slds-text-color_weak">
-                                                                    <template if:true={sf.required}><span class="slds-text-color_error">* </span></template>
-                                                                    {sf.apiName}
-                                                                </div>
+                    <div class="slds-grid slds-wrap canvas-sections-list">
+                        <template for:each={renderedSections} for:item="section">
+                            <!-- Click handler and widthClass added to section -->
+                            <div key={section.id} class={section.widthClass} data-sectionid={section.id} onclick={handleSectionClick}>
+                                <div class="slds-box slds-m-bottom_small" style="background: #fafbfe; border: 1px solid #e1e6eb; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: all 0.3s ease;">
+                                    <h3 class="slds-section__title slds-theme_shade slds-grid slds-grid_vertical-align-center slds-p-around_x-small" style="cursor: move; border-radius: 4px 4px 0 0; background: #eef2f7;">
+                                        <lightning-icon icon-name="utility:rows" size="x-small" class="slds-m-right_small slds-text-color_weak"></lightning-icon>
+                                        <span class="slds-truncate slds-text-title_bold" style="color: #1b202a; font-size: 0.95rem;" title={section.name}>{section.name}</span>
+                                    </h3>
+                                    <div class={section.fieldsContainerClass} style="padding: 10px; min-height: 60px;">
+                                        <!-- Parent Fields -->
+                                        <ul class={section.fieldsContainerClass} data-sectionid={section.id} style="min-height: 50px; border: 1px dashed #dddbda; border-radius: 4px; width: 100%; padding: 5px; background: #ffffff;">
+                                            <template for:each={section.fields} for:item="f">
+                                                <!-- Click handler added to field -->
+                                                <li key={f.apiName} class={section.fieldClass} data-apiname={f.apiName} data-sectionid={section.id} onclick={handleFieldClick} style="cursor: move;">
+                                                    <div class="slds-box slds-box_x-small slds-grid slds-grid_vertical-align-center" style="background: #ffffff; border: 1px solid #d8dde6; border-left: 3px solid #0070d2; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
+                                                        <lightning-icon icon-name="utility:rows" size="x-small" class="slds-m-right_small slds-text-color_weak"></lightning-icon>
+                                                        <div>
+                                                            <div class="slds-text-title_bold" style="color: #2b303a;">{f.label}</div>
+                                                            <div class="slds-text-body_small slds-text-color_weak">
+                                                                <template if:true={f.required}><span class="slds-text-color_error">* </span></template>
+                                                                {f.apiName}
+                                                                <template if:true={f.readOnly}> (Read Only)</template>
                                                             </div>
-                                                        </li>
-                                                    </template>
-                                                </ul>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            </template>
+                                        </ul>
+
+                                        <!-- Nested Subsections List -->
+                                        <template if:true={section.subsections}>
+                                            <div class="slds-m-top_small slds-p-horizontal_small" style="width: 100%;">
+                                                <template for:each={section.subsections} for:item="sub">
+                                                    <div key={sub.id} class="slds-box slds-m-bottom_small" style="border: 1px solid #dddbda; border-left: 4px solid #0070d2; border-radius: 4px; cursor: pointer; background: #ffffff; padding: 10px;" data-subid={sub.id} data-parentid={section.id} onclick={handleSubsectionClick}>
+                                                        <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
+                                                            <lightning-icon icon-name="utility:rows" size="x-small" class="slds-m-right_small slds-text-color_weak"></lightning-icon>
+                                                            <div class="slds-text-title_caps" style="font-weight: bold; color: #0070d2;">{sub.name}</div>
+                                                        </div>
+                                                        <ul class={sub.fieldsContainerClass} data-sectionid={sub.id} style="min-height: 50px; border: 1px dashed #dddbda; border-radius: 4px; background: #fdfdfd; width: 100%; padding: 5px;">
+                                                            <template for:each={sub.fields} for:item="sf">
+                                                                <li key={sf.apiName} class={sub.fieldClass} data-apiname={sf.apiName} data-sectionid={sub.id} onclick={handleFieldClick} style="cursor: move;">
+                                                                    <div class="slds-box slds-box_x-small slds-grid slds-grid_vertical-align-center" style="background: #ffffff; border: 1px solid #d8dde6; border-left: 3px solid #0070d2; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.03);">
+                                                                        <lightning-icon icon-name="utility:rows" size="x-small" class="slds-m-right_small slds-text-color_weak"></lightning-icon>
+                                                                        <div>
+                                                                            <div class="slds-text-title_bold" style="color: #2b303a;">{sf.label}</div>
+                                                                            <div class="slds-text-body_small slds-text-color_weak">
+                                                                                <template if:true={sf.required}><span class="slds-text-color_error">* </span></template>
+                                                                                {sf.apiName}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </li>
+                                                            </template>
+                                                        </ul>
+                                                    </div>
+                                                </template>
                                             </div>
                                         </template>
                                     </div>
-                                </template>
+                                </div>
                             </div>
-                        </div>
-                    </template>
+                        </template>
+                    </div>
 
                 </div>
             </div>
@@ -118,17 +138,28 @@
             <!-- Right Sidebar: Properties -->
             <div class="slds-col slds-size_1-of-5 builder-sidebar-right" onclick={handleCanvasClick}>
                 <div class="slds-card" style="min-height: 200px;">
-                    <div class="slds-p-around_medium" onclick={handleSectionClick}> <!-- Hack to prevent bubbling if clicking inside properties -->
+                    <div class="slds-p-around_medium" onclick={handleSidebarClick}> <!-- Hack to prevent bubbling if clicking inside properties -->
                         <div class="slds-text-heading_small slds-m-bottom_medium">Properties</div>
                         
                         <template if:true={isSectionSelected}>
                             <div class="slds-text-title_caps slds-m-bottom_small">Section Configuration</div>
                             <lightning-input label="Section Name" value={selectedSectionName} onchange={handleSectionNameChange}></lightning-input>
+                            
+                            <template if:true={isTopLevelSectionSelected}>
+                                <lightning-combobox
+                                    name="sectionWidth" label="Section Width"
+                                    value={selectedSectionWidth} options={widthOptions}
+                                    onchange={handleSectionWidthChange} class="slds-m-top_small">
+                                </lightning-combobox>
+                            </template>
+
                             <lightning-combobox
                                 name="sectionColumns" label="Columns"
                                 value={selectedSectionColumns} options={columnOptions}
                                 onchange={handleSectionColumnsChange} class="slds-m-top_small">
                             </lightning-combobox>
+                            
+                            <lightning-input type="checkbox" label="Enable Horizontal Scroll" checked={selectedSectionScroll} onchange={handleSectionScrollChange} class="slds-m-top_small"></lightning-input>
                             
                             <template if:true={isTopLevelSectionSelected}>
                                 <lightning-button label="Add Subsection" variant="brand-outline" icon-name="utility:add" onclick={handleAddSubsection} class="slds-m-top_medium slds-stretch"></lightning-button>
@@ -150,6 +181,7 @@
                             
                             <template if:true={layoutRecordId}>
                                 <div class="slds-box slds-box_xx-small slds-theme_shade slds-m-bottom_medium">
+                                    <div class="slds-text-body_small slds-m-bottom_x-small" style="font-family: monospace;">Record context ID: {layoutRecordId}</div>
                                     <lightning-file-upload
                                         label="Upload Background Image"
                                         name="fileUploader"

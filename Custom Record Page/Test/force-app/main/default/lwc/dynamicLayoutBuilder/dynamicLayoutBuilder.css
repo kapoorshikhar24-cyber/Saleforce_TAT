@@ -1,0 +1,30 @@
+.scrollable-fields-container {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+    display: flex !important;
+}
+
+.scrollable-fields-container > div, 
+.scrollable-fields-container > li {
+    flex: 0 0 220px !important;
+    width: 220px !important;
+}
+
+.field-item div:hover {
+    border-color: #0070d2 !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.08) !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease-in-out;
+}
+
+.canvas-sections-list > div:hover {
+    transform: translateY(-1px);
+    transition: all 0.2s ease-in-out;
+}
+
+.sortable-ghost {
+    opacity: 0.4 !important;
+    background: #eef2f7 !important;
+    border: 2px dashed #0070d2 !important;
+}

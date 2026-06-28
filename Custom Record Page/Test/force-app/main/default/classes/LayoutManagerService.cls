@@ -82,12 +82,16 @@ public with sharing class LayoutManagerService {
                     Map<String, Object> secMap = (Map<String, Object>)secObj;
                     String secName = (String)secMap.get('name');
                     Integer columns = secMap.containsKey('columns') ? (Integer)secMap.get('columns') : 2;
+                    Integer width = secMap.containsKey('width') ? (Integer)secMap.get('width') : 12;
+                    Boolean scroll = secMap.containsKey('horizontalScroll') ? (Boolean)secMap.get('horizontalScroll') : false;
                     
                     Layout_Section__c parentSection = new Layout_Section__c(
                         Custom_Record_Page__c = layout.Id,
                         Section_Name__c = secName,
                         Display_Order__c = sectionOrder++,
-                        Number_of_Columns__c = columns
+                        Number_of_Columns__c = columns,
+                        Width__c = width,
+                        Horizontal_Scroll__c = scroll
                     );
                     insert parentSection;
                     
@@ -101,13 +105,17 @@ public with sharing class LayoutManagerService {
                             Map<String, Object> subMap = (Map<String, Object>)subObj;
                             String subName = (String)subMap.get('name');
                             Integer subCols = subMap.containsKey('columns') ? (Integer)subMap.get('columns') : 2;
+                            Integer subWidth = subMap.containsKey('width') ? (Integer)subMap.get('width') : 12;
+                            Boolean subScroll = subMap.containsKey('horizontalScroll') ? (Boolean)subMap.get('horizontalScroll') : false;
                             
                             Layout_Section__c subSection = new Layout_Section__c(
                                 Custom_Record_Page__c = layout.Id,
                                 Parent_Section__c = parentSection.Id,
                                 Section_Name__c = subName,
                                 Display_Order__c = subOrder++,
-                                Number_of_Columns__c = subCols
+                                Number_of_Columns__c = subCols,
+                                Width__c = subWidth,
+                                Horizontal_Scroll__c = subScroll
                             );
                             insert subSection;
                             
@@ -183,7 +191,7 @@ public with sharing class LayoutManagerService {
             Custom_Record_Page__c layout = layouts[0];
             
             List<Layout_Section__c> allSections = [
-                SELECT Id, Section_Name__c, Number_of_Columns__c, Parent_Section__c,
+                SELECT Id, Section_Name__c, Number_of_Columns__c, Parent_Section__c, Width__c, Horizontal_Scroll__c,
                        (SELECT Field_API_Name__c, Custom_Label__c, Required__c, Read_Only__c FROM Layout_Fields__r ORDER BY Display_Order__c ASC)
                 FROM Layout_Section__c 
                 WHERE Custom_Record_Page__c = :layout.Id 
@@ -202,6 +210,8 @@ public with sharing class LayoutManagerService {
                     secMap.put('id', sec.Id);
                     secMap.put('name', sec.Section_Name__c);
                     secMap.put('columns', sec.Number_of_Columns__c);
+                    secMap.put('width', sec.Width__c != null ? sec.Width__c : 12);
+                    secMap.put('horizontalScroll', sec.Horizontal_Scroll__c != null ? sec.Horizontal_Scroll__c : false);
                     secMap.put('fields', getFieldsList(sec.Layout_Fields__r));
                     secMap.put('subsections', new List<Object>());
                     parentMap.put(sec.Id, secMap);
@@ -215,6 +225,8 @@ public with sharing class LayoutManagerService {
                     subMap.put('id', sec.Id);
                     subMap.put('name', sec.Section_Name__c);
                     subMap.put('columns', sec.Number_of_Columns__c);
+                    subMap.put('width', sec.Width__c != null ? sec.Width__c : 12);
+                    subMap.put('horizontalScroll', sec.Horizontal_Scroll__c != null ? sec.Horizontal_Scroll__c : false);
                     subMap.put('fields', getFieldsList(sec.Layout_Fields__r));
                     
                     Map<String, Object> parentSec = parentMap.get(sec.Parent_Section__c);

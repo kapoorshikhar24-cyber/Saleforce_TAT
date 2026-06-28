@@ -2,17 +2,16 @@ import { LightningElement, api, wire, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getActiveLayout from '@salesforce/apex/LayoutManagerService.getActiveLayout';
 
-export default class CustomRecordPage extends LightningElement {
+export default class CustomRecordPage2 extends LightningElement {
     @api recordId;
     @api objectApiName;
     @api backgroundImageUrl;
-    @api displayedFields; // Kept for backwards compatibility with active flexipages
-    @api layoutConfigJSON; // Manual override
+    @api displayedFields; 
+    @api layoutConfigJSON; 
 
     @track parsedLayout = null;
 
     get backgroundStyle() {
-        // Prioritize JSON config over manual property
         let bgUrl = this.backgroundImageUrl;
         if (this.parsedLayout && this.parsedLayout.backgroundImageUrl) {
             bgUrl = this.parsedLayout.backgroundImageUrl;
@@ -26,7 +25,6 @@ export default class CustomRecordPage extends LightningElement {
 
     @wire(getActiveLayout, { objectApiName: '$objectApiName' })
     wiredLayout({ error, data }) {
-        // If manual config is provided via App Builder, it overrides the database.
         if (this.layoutConfigJSON) {
             this.parseConfig(this.layoutConfigJSON);
         } else if (data) {
